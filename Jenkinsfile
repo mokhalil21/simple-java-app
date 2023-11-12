@@ -4,23 +4,31 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', ursfl: 'https://github.com/mokhalil21/simple-java-app.git'
-            }fdsf
+                git branch: 'main', url: 'https://github.com/mokhalil21/simple-java-app.git'
+            }
         }
 
-        stage('Build') {fsd
+        stage('Build') {
             steps {
                 sh 'mvn clean package' // Corrected the command here
             }
-        }dfsfsf
-dsf
+        }
+
+        stage('Test') {
+            steps {
+                script {
+                    if (env.BRANCH_NAME == 'feat') {
+                        sh 'echo "test stage"'
+                    } else {
+                        sh 'echo "skip test stage"'
+                    }
                 }
             }
         }
     }
 
     post {
-        success { // Corrected the spelling hsdfere
+        success { // Corrected the spelling here
             slackSend(channel: '#jenkins-ci', message: "Build success - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)", teamDomain: 'project-5rk8017', tokenCredentialId: 'slack-notification')
         }
         
