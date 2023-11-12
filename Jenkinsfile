@@ -1,20 +1,59 @@
-node {
-    git branch: 'main', url: 'https://github.com/mokhalil21/simple-java-app.git'
-    
-    stage('build') {
-        try {
-            sh 'echo "build stage"'
-        } catch (Exception e) {
-            sh 'echo "exception found"'
-            throw e
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_IMAGE = 'your-docker-username/your-app-name'
+        REGISTRY_CREDENTIALS_ID = 'your-dockerhub-credentials-id'
+        KUBE_CONFIG = 'your-kube-config'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build & Test') {
+            steps {
+                sh 'pip install -r requirements.txt'
+                sh 'pytest'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    dockerImage = docker.build("${DOCKER_IMAGE}:${env.BUILD_ID}")
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    docker.withRegistry('', REGISTRY_CREDENTIALS_ID) {
+                        dockerImage.push()
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    kubernetesDeploy(
+                        configs: 'k8s/deployment.yaml',
+                        kubeconfigId: KUBE_CONFIG
+                    )
+                }
+            }
         }
     }
 
-    stage('test') {
-        if (env.BRANCH_NAME == 'feat') {
-            sh 'echo "test stage"'
-        } else {
-            sh 'echo "skip test stage"'
+    post {
+        always {
+            echo 'Pipeline execution complete.'
         }
     }
 }
