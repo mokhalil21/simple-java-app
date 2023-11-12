@@ -1,59 +1,36 @@
 pipeline {
     agent any
 
-    environment {
-        DOCKER_IMAGE = 'your-docker-username/your-app-name'
-        REGISTRY_CREDENTIALS_ID = 'your-dockerhub-credentials-id'
-        KUBE_CONFIG = 'your-kube-config'
-    }
-
     stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
-        stage('Build & Test') {
-            steps {
-                sh 'pip install -r requirements.txt'
-                sh 'pytest'
-            }
-        }
-
-        stage('Build Docker Image') {
+        stage('build') {
             steps {
                 script {
-                    dockerImage = docker.build("${DOCKER_IMAGE}:${env.BUILD_ID}")
+                    echo "build in progress"
                 }
             }
-        }
+node {
+    git branch: 'main', url: 'https://github.com/mokhalil21/simple-java-app.git'
 
-        stage('Push Docker Image') {
+    stage('build') {
+        try {
+            sh 'echo "build stage"'
+        } catch (Exception e) {
+            sh 'echo "exception found"'
+            throw e
+        }
+        stage('test') {
             steps {
                 script {
-                    docker.withRegistry('', REGISTRY_CREDENTIALS_ID) {
-                        dockerImage.push()
-                    }
+                    echo "test in progress"
                 }
             }
-        }
-
-        stage('Deploy to Kubernetes') {
-            steps {
-                script {
-                    kubernetesDeploy(
-                        configs: 'k8s/deployment.yaml',
-                        kubeconfigId: KUBE_CONFIG
-                    )
-                }
-            }
-        }
     }
 
-    post {
-        always {
-            echo 'Pipeline execution complete.'
+    stage('test') {
+        if (env.BRANCH_NAME == 'feat') {
+            sh 'echo "test stage"'
+        } else {
+            sh 'echo "skip test stage"'
         }
     }
 }
